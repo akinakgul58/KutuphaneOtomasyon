@@ -91,6 +91,6 @@ Yöneticiler ise:
 ---
 
 
-## 📌 NOT
+## 📌 Bilgilendirme
 
 Bu proje eğitim amaçlı geliştirilmiştir.
