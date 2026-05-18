@@ -151,7 +151,7 @@ namespace KutuphaneOtomasyon
 
         private void ArayuzuHazirla()
         {
-            this.Text = "Kütüphane Otomasyon Sistemi v17.0";
+            this.Text = "Kütüphane Otomasyon Sistemi";
             this.Size = new Size(750, 750);
             this.StartPosition = FormStartPosition.CenterScreen;
             this.FormBorderStyle = FormBorderStyle.FixedSingle;
@@ -232,33 +232,59 @@ namespace KutuphaneOtomasyon
                 else if (k != null && k.OduncAlanUyeId != _sistem.AktifUye.Id) MessageBox.Show("Bu kitap size ait değil!", "Reddedildi", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             };
 
-            // --- ADMIN PANELİ GÜNCELLENDİ (DÜZENLİ BUTON YERLEŞİMİ) ---
+            // --- ADMIN PANELİ (SİLME BUTONU VE DÜZENLEME EKLENDİ) ---
             pnlAdminPaneli = new Panel { Name = "pnlAdm", Location = new Point(20, 520), Size = new Size(690, 150), Visible = false };
             txtYeniKitapAdi = TextboxOlustur("Kitap Adı", 10, 30); txtYeniYazar = TextboxOlustur("Yazar", 220, 30);
             cmbYeniKategori = new ComboBox { Location = new Point(430, 30), Width = 110, DropDownStyle = ComboBoxStyle.DropDownList };
             cmbYeniKategori.Items.AddRange(new string[] { "Roman", "Tarih", "Bilim", "Yazılım", "Felsefe" }); cmbYeniKategori.SelectedIndex = 0;
 
             Button btnAdd = ButonOlustur("Ekle", 560, 28, Color.DarkSeaGreen); btnAdd.Width = 120;
-            btnAdd.Click += (s, e) => { _sistem.Kitaplar.Add(new Kitap(_sistem.Kitaplar.Max(k => k.Id) + 1, txtYeniKitapAdi.Text, txtYeniYazar.Text, cmbYeniKategori.Text)); _sistem.VerileriKaydet(); ListeyiGuncelle(); };
+            btnAdd.Click += (s, e) => {
+                int yeniId = _sistem.Kitaplar.Count > 0 ? _sistem.Kitaplar.Max(k => k.Id) + 1 : 1; // Kitap kalmadığında çökmeyi önler
+                _sistem.Kitaplar.Add(new Kitap(yeniId, txtYeniKitapAdi.Text, txtYeniYazar.Text, cmbYeniKategori.Text));
+                _sistem.VerileriKaydet(); ListeyiGuncelle();
+            };
 
-            Button btnKul = ButonOlustur("👥 Üyeler", 10, 80, Color.Teal); btnKul.Width = 150; btnKul.ForeColor = Color.White;
+            Button btnKul = ButonOlustur("👥 Üyeler", 10, 80, Color.Teal); btnKul.Width = 140; btnKul.ForeColor = Color.White;
             btnKul.Click += (s, e) => { KullaniciListesiniGuncelle(); EkraniGoster(pnlKullanicilar); };
 
-            Button btnLog = ButonOlustur("📜 Geçmiş", 170, 80, Color.DimGray); btnLog.Width = 150; btnLog.ForeColor = Color.White;
+            Button btnLog = ButonOlustur("📜 Geçmiş", 160, 80, Color.DimGray); btnLog.Width = 140; btnLog.ForeColor = Color.White;
             btnLog.Click += (s, e) => { LogListesiniGuncelle(); EkraniGoster(pnlLog); };
 
-            // YENİ: GECİKENLER BUTONU
-            Button btnGec = ButonOlustur("🚨 Gecikenler", 330, 80, Color.Crimson); btnGec.Width = 150; btnGec.ForeColor = Color.White;
+            Button btnGec = ButonOlustur("🚨 Gecikenler", 310, 80, Color.Crimson); btnGec.Width = 140; btnGec.ForeColor = Color.White;
             btnGec.Click += (s, e) => { GecikenleriGuncelle(); EkraniGoster(pnlGecikenler); };
 
-            pnlAdminPaneli.Controls.AddRange(new Control[] { new Label { Text = "Yönetici Paneli", Location = new Point(10, 5) }, txtYeniKitapAdi, txtYeniYazar, cmbYeniKategori, btnAdd, btnKul, btnLog, btnGec });
+            Button btnSil = ButonOlustur("🗑️ Seçili Kitabı Sil", 460, 80, Color.IndianRed); btnSil.Width = 220; btnSil.ForeColor = Color.White;
+            btnSil.Click += (s, e) => {
+                var k = SecilenKitabGetir(dgvKitaplar);
+                if (k == null)
+                {
+                    MessageBox.Show("Lütfen silmek için listeden bir kitap seçin.", "Uyarı", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+                if (!k.RaftaMi)
+                {
+                    MessageBox.Show("DİKKAT: Bu kitap şu an bir üyede! İade edilmeyen kitaplar sistemden silinemez.", "Güvenlik İhlali", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+
+                var onay = MessageBox.Show($"'{k.Ad}' adlı kitabı kalıcı olarak silmek istediğinize emin misiniz?", "Kalıcı Silme Onayı", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                if (onay == DialogResult.Yes)
+                {
+                    _sistem.Kitaplar.Remove(k);
+                    _sistem.VerileriKaydet();
+                    ListeyiGuncelle();
+                    MessageBox.Show("Kitap sistemden başarıyla silindi.", "Silindi", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+            };
+
+            pnlAdminPaneli.Controls.AddRange(new Control[] { new Label { Text = "Yönetici Paneli", Location = new Point(10, 5) }, txtYeniKitapAdi, txtYeniYazar, cmbYeniKategori, btnAdd, btnKul, btnLog, btnGec, btnSil });
 
             // --- PROFIL PANELI ---
             pnlProfil.Controls.Add(SolUstGeriButonuOlustur("Geri", (s, e) => { ListeyiGuncelle(); EkraniGoster(pnlAnaEkran); }));
             Label lblPrfT = new Label { Text = "Hesabım ve Kitaplarım", Location = new Point(270, 20), Font = new Font("Segoe UI", 14, FontStyle.Bold), AutoSize = true };
             dgvProfilKitaplar = GridOlustur(20, 60, 690, 200);
 
-            // GÜNCELLEME: Profilde geciken kitapları kırmızı boyar
             dgvProfilKitaplar.DataBindingComplete += (s, e) => {
                 bool dark = _sistem.IsKaranlikMod;
                 foreach (DataGridViewRow row in dgvProfilKitaplar.Rows)
@@ -300,16 +326,15 @@ namespace KutuphaneOtomasyon
             pnlLog.Controls.Add(SolUstGeriButonuOlustur("Geri", (s, e) => EkraniGoster(pnlAnaEkran)));
             dgvLoglar = GridOlustur(20, 60, 690, 550); pnlLog.Controls.AddRange(new Control[] { new Label { Text = "İşlem Geçmişi", Location = new Point(300, 20), Font = new Font("Segoe UI", 12, FontStyle.Bold) }, dgvLoglar });
 
-            // --- YENİ: GECİKENLER PANELI ---
+            // --- GECİKENLER PANELI ---
             pnlGecikenler.Controls.Add(SolUstGeriButonuOlustur("Geri", (s, e) => EkraniGoster(pnlAnaEkran)));
             dgvGecikenler = GridOlustur(20, 60, 690, 550);
-            pnlGecikenler.Controls.AddRange(new Control[] { new Label { Text = "Süresi Dolan Kitaplar ve Cezalar", Location = new Point(250, 20), Font = new Font("Segoe UI", 12, FontStyle.Bold) }, dgvGecikenler });
+            pnlGecikenler.Controls.AddRange(new Control[] { new Label { Text = "Gecikenler", Location = new Point(250, 20), Font = new Font("Segoe UI", 12, FontStyle.Bold) }, dgvGecikenler });
 
             pnlAnaEkran.Controls.AddRange(new Control[] { lblHosgeldin, btnPrf, lblSaat, txtArama, cmbKategoriler, dgvKitaplar, btnO, btnI, pnlAdminPaneli });
             this.Controls.AddRange(new Control[] { pnlBaslangic, pnlKayit, pnlGiris, pnlAnaEkran, pnlProfil, pnlKullanicilar, pnlLog, pnlGecikenler });
         }
 
-        // GÜNCELLEME: Profil kitaplarında ceza hesaplama mantığı
         private void ProfilKitaplariniGuncelle()
         {
             var benimKitaplar = _sistem.Kitaplar.Where(k => k.OduncAlanUyeId == _sistem.AktifUye.Id).Select(k => {
@@ -320,11 +345,10 @@ namespace KutuphaneOtomasyon
 
             dgvProfilKitaplar.DataSource = null; dgvProfilKitaplar.DataSource = benimKitaplar;
             if (dgvProfilKitaplar.Columns["Id"] != null) dgvProfilKitaplar.Columns["Id"].Visible = false;
-            if (dgvProfilKitaplar.Columns["GeciktiMi"] != null) dgvProfilKitaplar.Columns["GeciktiMi"].Visible = false; // Gizli sütun (boyama için)
+            if (dgvProfilKitaplar.Columns["GeciktiMi"] != null) dgvProfilKitaplar.Columns["GeciktiMi"].Visible = false;
             lblProfilBilgi.Text = $"Toplam kayıtlı kitap: {benimKitaplar.Count}";
         }
 
-        // YENİ: Admin için gecikenleri hesaplar
         private void GecikenleriGuncelle()
         {
             var gecikenler = _sistem.Kitaplar.Where(k => !k.RaftaMi && (DateTime.Now - k.OduncAlinmaTarihi!.Value).Days > 15).Select(k => {

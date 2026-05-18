@@ -11,7 +11,7 @@ namespace KutuphaneOtomasyon
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
 
-            // Programın Form1 ile başlamasını sağlar
+            
             Application.Run(new Form1());
         }
     }
